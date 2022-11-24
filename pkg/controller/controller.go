@@ -128,6 +128,13 @@ func NewController(params Params) *Controller {
 
 	log.Debug("Controller Created")
 
+	ctlr.GRPCAgent = &GRPCAgent{
+		Port: params.GRPCServerPort,
+		EndPointServices: &EndPointServices{
+			UnimplementedEndPointServiceServer: UnimplementedEndPointServiceServer{},
+			EndPointChan:                       make(chan EndPoints),
+		},
+	}
 	ctlr.resourceQueue = workqueue.NewNamedRateLimitingQueue(
 		workqueue.DefaultControllerRateLimiter(), "nextgen-resource-controller")
 	ctlr.comInformers = make(map[string]*CommonInformer)
@@ -392,6 +399,9 @@ func (ctlr *Controller) Start() {
 	}
 
 	ctlr.nodePoller.Run()
+
+	go ctlr.GRPCAgent.StartGRPCServer()
+	go ctlr.ProcessEndPointFromAgent()
 
 	stopChan := make(chan struct{})
 

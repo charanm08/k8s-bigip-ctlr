@@ -26,29 +26,36 @@ type VirtualServerStatus struct {
 
 // VirtualServerSpec is the spec of the VirtualServer resource.
 type VirtualServerSpec struct {
-	Host                   string           `json:"host,omitempty"`
-	HostGroup              string           `json:"hostGroup,omitempty"`
-	VirtualServerAddress   string           `json:"virtualServerAddress,omitempty"`
-	IPAMLabel              string           `json:"ipamLabel,omitempty"`
-	VirtualServerName      string           `json:"virtualServerName,omitempty"`
-	VirtualServerHTTPPort  int32            `json:"virtualServerHTTPPort,omitempty"`
-	VirtualServerHTTPSPort int32            `json:"virtualServerHTTPSPort,omitempty"`
-	Pools                  []Pool           `json:"pools,omitempty"`
-	TLSProfileName         string           `json:"tlsProfileName,omitempty"`
-	HTTPTraffic            string           `json:"httpTraffic,omitempty"`
-	SNAT                   string           `json:"snat,omitempty"`
-	WAF                    string           `json:"waf,omitempty"`
-	RewriteAppRoot         string           `json:"rewriteAppRoot,omitempty"`
-	AllowVLANs             []string         `json:"allowVlans,omitempty"`
-	IRules                 []string         `json:"iRules,omitempty"`
-	ServiceIPAddress       []ServiceAddress `json:"serviceAddress,omitempty"`
-	PolicyName             string           `json:"policyName,omitempty"`
-	PersistenceProfile     string           `json:"persistenceProfile,omitempty"`
-	ProfileMultiplex       string           `json:"profileMultiplex,omitempty"`
-	DOS                    string           `json:"dos,omitempty"`
-	BotDefense             string           `json:"botDefense,omitempty"`
-	Profiles               ProfileSpec      `json:"profiles,omitempty"`
-	AllowSourceRange       []string         `json:"allowSourceRange,omitempty"`
+	Host                   string                `json:"host,omitempty"`
+	HostGroup              string                `json:"hostGroup,omitempty"`
+	VirtualServerAddress   string                `json:"virtualServerAddress,omitempty"`
+	IPAMLabel              string                `json:"ipamLabel,omitempty"`
+	VirtualServerName      string                `json:"virtualServerName,omitempty"`
+	VirtualServerHTTPPort  int32                 `json:"virtualServerHTTPPort,omitempty"`
+	VirtualServerHTTPSPort int32                 `json:"virtualServerHTTPSPort,omitempty"`
+	Pools                  []Pool                `json:"pools,omitempty"`
+	TLSProfileName         string                `json:"tlsProfileName,omitempty"`
+	HTTPTraffic            string                `json:"httpTraffic,omitempty"`
+	SNAT                   string                `json:"snat,omitempty"`
+	WAF                    string                `json:"waf,omitempty"`
+	RewriteAppRoot         string                `json:"rewriteAppRoot,omitempty"`
+	AllowVLANs             []string              `json:"allowVlans,omitempty"`
+	IRules                 []string              `json:"iRules,omitempty"`
+	ServiceIPAddress       []ServiceAddress      `json:"serviceAddress,omitempty"`
+	PolicyName             string                `json:"policyName,omitempty"`
+	PersistenceProfile     string                `json:"persistenceProfile,omitempty"`
+	ProfileMultiplex       string                `json:"profileMultiplex,omitempty"`
+	DOS                    string                `json:"dos,omitempty"`
+	BotDefense             string                `json:"botDefense,omitempty"`
+	Profiles               ProfileSpec           `json:"profiles,omitempty"`
+	AllowSourceRange       []string              `json:"allowSourceRange,omitempty"`
+	MultiClusterServices   []MultiClusterService `json:"multiClusterServices,omitempty"`
+}
+
+type MultiClusterService struct {
+	Service     string `json:"service,omitempty"`
+	ClusterName string `json:"clusterName,omitempty"`
+	ServicePort int32  `json:"servicePort,omitempty"`
 }
 
 // ServiceAddress Service IP address definition (BIG-IP virtual-address).

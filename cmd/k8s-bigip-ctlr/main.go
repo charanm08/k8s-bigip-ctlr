@@ -183,6 +183,7 @@ var (
 	routeHttpVs      *string
 	routeHttpsVs     *string
 	clientSSL        *string
+	grpcServerPort   *int
 	serverSSL        *string
 
 	routeSpecConfigmap *string
@@ -244,6 +245,9 @@ func _init() {
 		"Optional, address to serve http based informations (/metrics and /health).")
 	disableTeems = globalFlags.Bool("disable-teems", false,
 		"Optional, flag to disable sending telemetry data to TEEM")
+	grpcServerPort = globalFlags.Int("grpc-server-port", 5000,
+		"Optional, specify port on which grpc server has to run")
+
 	// Custom Resource
 	enableIPV6 = globalFlags.Bool("enable-ipv6", false,
 		"Optional, flag to enbale ipv6 network support.")
@@ -853,6 +857,7 @@ func initController(
 			Mode:               controller.ControllerMode(*controllerMode),
 			RouteSpecConfigmap: *routeSpecConfigmap,
 			RouteLabel:         *routeLabel,
+			GRPCServerPort:     grpcServerPort,
 		},
 	)
 

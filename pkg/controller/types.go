@@ -19,6 +19,8 @@ package controller
 import (
 	"container/list"
 	ficV1 "github.com/F5Networks/f5-ipam-controller/pkg/ipamapis/apis/fic/v1"
+	v12 "github.com/F5Networks/k8s-bigip-ctlr/config/apis/cis/v1"
+
 	"net/http"
 	"sync"
 
@@ -61,6 +63,7 @@ type (
 		resourceQueue          workqueue.RateLimitingInterface
 		Partition              string
 		Agent                  *Agent
+		GRPCAgent              *GRPCAgent
 		PoolMemberType         string
 		nodePoller             pollers.Poller
 		oldNodes               []Node
@@ -77,6 +80,32 @@ type (
 		ipamHostSpecEmpty      bool
 		resourceContext
 	}
+	EndPoints struct {
+		SvcName     string
+		ClusterName string
+		Records     []*AgentRecord
+	}
+	AgentRecord struct {
+		SvcPort      intstr.IntOrString
+		TargetPort   intstr.IntOrString
+		NetworkInfos []AgentNetworkInfo
+	}
+	AgentNetworkInfo struct {
+		Mac      string
+		EndPoint string
+	}
+
+	EndPointServices struct {
+		UnimplementedEndPointServiceServer
+		EndPointChan chan EndPoints
+	}
+
+	GRPCAgent struct {
+		EndPointServices *EndPointServices
+		Port             *int
+		declUpdate       sync.Mutex
+	}
+
 	resourceContext struct {
 		resourceQueue      workqueue.RateLimitingInterface
 		routeClientV1      routeclient.RouteV1Interface
@@ -109,6 +138,7 @@ type (
 		Mode               ControllerMode
 		RouteSpecConfigmap string
 		RouteLabel         string
+		GRPCServerPort     *int
 	}
 
 	// CRInformer defines the structure of Custom Resource Informer
@@ -156,11 +186,12 @@ type (
 		Active       bool
 		ResourceType string
 		// resource name as key, resource kind as value
-		baseResources map[string]string
-		namespace     string
-		hosts         []string
-		Protocol      string
-		httpTraffic   string
+		baseResources        map[string]string
+		namespace            string
+		hosts                []string
+		Protocol             string
+		httpTraffic          string
+		multiClusterServices map[string]v12.MultiClusterService
 	}
 
 	// Virtual Server Key - unique server is Name + Port
@@ -392,6 +423,7 @@ type (
 		// key of the map is IPSpec.Key
 		ipamContext              map[string]ficV1.IPSpec
 		processedNativeResources map[resourceRef]struct{}
+		endPoints                map[string]EndPoints
 	}
 
 	// key is group identifier

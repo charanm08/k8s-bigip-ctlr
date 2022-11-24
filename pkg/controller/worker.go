@@ -1085,6 +1085,13 @@ func (ctlr *Controller) processVirtualServers(
 		rsCfg.IRulesMap = make(IRulesMap)
 		rsCfg.customProfiles = make(map[SecretKey]CustomProfile)
 
+		if virtual.Spec.MultiClusterServices != nil {
+			rsCfg.MetaData.multiClusterServices = make(map[string]cisapiv1.MultiClusterService)
+			for _, svc := range virtual.Spec.MultiClusterServices {
+				rsCfg.MetaData.multiClusterServices[svc.ClusterName+"/"+svc.Service] = svc
+			}
+		}
+
 		plc, err := ctlr.getPolicyFromVirtuals(virtuals)
 		if plc != nil {
 			err := ctlr.handleVSResourceConfigForPolicy(rsCfg, plc)
@@ -1700,6 +1707,29 @@ func (ctlr *Controller) updatePoolMembersForNodePort(
 					ctlr.getEndpointsForNodePort(svcPort.NodePort, pool.NodeMemberLabel)
 			}
 		}
+
+		// Check if there are any pool members entries from other clusters
+
+		// In each pool, for every multi-custer spec
+		// key - clustername/namespace/servicename
+		for poolKey, _ := range rsCfg.MetaData.multiClusterServices {
+			// check for matching key in the endpoints store
+			for epKey, eps := range ctlr.resources.supplementContextCache.endPoints {
+				if poolKey == epKey {
+
+					for _, record := range eps.Records {
+						if pool.ServicePort == record.TargetPort {
+							rsCfg.MetaData.Active = true
+							rsCfg.Pools[index].Members = append(
+								rsCfg.Pools[index].Members,
+								ctlr.GetRemoteClusterEndpointsForNodePort(record.NetworkInfos, record.TargetPort)...)
+						}
+					}
+
+				}
+			}
+		}
+
 		//check if endpoints are found
 		if rsCfg.Pools[index].Members == nil {
 			log.Errorf("[CORE]Endpoints could not be fetched for service %v with targetPort %v", svcName, pool.ServicePort.IntVal)
@@ -1790,6 +1820,24 @@ func (ctlr *Controller) getEndpointsForNodePort(
 		member := PoolMember{
 			Address: v.Addr,
 			Port:    nodePort,
+			Session: "user-enabled",
+		}
+		members = append(members, member)
+	}
+
+	return members
+}
+
+// getEndpointsForNodePort returns members.
+func (ctlr *Controller) GetRemoteClusterEndpointsForNodePort(
+	NetworkInfos []AgentNetworkInfo, nodePort intstr.IntOrString,
+) []PoolMember {
+
+	var members []PoolMember
+	for _, nwInfo := range NetworkInfos {
+		member := PoolMember{
+			Address: nwInfo.EndPoint,
+			Port:    nodePort.IntVal,
 			Session: "user-enabled",
 		}
 		members = append(members, member)
@@ -3517,4 +3565,17 @@ func (ctlr *Controller) getTLSProfilesForSecret(secret *v1.Secret) []*cisapiv1.T
 		}
 	}
 	return allTLSProfiles
+}
+
+//ProcessEndPointFromAgent
+func (ctlr *Controller) ProcessEndPointFromAgent() {
+
+	for endPoint := range ctlr.GRPCAgent.EndPointServices.EndPointChan {
+
+		if ctlr.resources.supplementContextCache.endPoints == nil {
+			ctlr.resources.supplementContextCache.endPoints = make(map[string]EndPoints)
+		}
+		ctlr.resources.supplementContextCache.endPoints[endPoint.ClusterName+"/"+endPoint.SvcName] = endPoint
+	}
+
 }

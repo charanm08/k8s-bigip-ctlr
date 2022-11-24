@@ -49,7 +49,7 @@ stages:
 - stage: ContainerImage
   dependsOn: PreCheck
   jobs:
-  - job: BuildContainerImage
+  - job: BuildContainerImagezsh
     steps:
       - script: |
           echo "##vso[task.setvariable variable=BUILD_VERSION]$(cat next-version.txt)"

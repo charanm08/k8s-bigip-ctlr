@@ -1,4 +1,4 @@
-FROM golang:1.15 as builder
+FROM golang:1.17 as builder
 
 ARG REPOPATH=$GOPATH/src/github.com/F5Networks/k8s-bigip-ctlr
 ARG RUN_TESTS
@@ -61,5 +61,6 @@ ENV GODEBUG x509ignoreCN=0
 RUN echo $'#!/bin/sh\n\
     exec $APPPATH/bin/k8s-bigip-ctlr.real "$@"' > $APPPATH/bin/k8s-bigip-ctlr && \
     chmod +x $APPPATH/bin/k8s-bigip-ctlr
+EXPOSE 5000
 
 CMD ["/app/bin/k8s-bigip-ctlr"]

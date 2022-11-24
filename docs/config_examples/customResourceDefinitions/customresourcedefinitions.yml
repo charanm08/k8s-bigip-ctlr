@@ -18,7 +18,7 @@ spec:
       storage: true
       schema:
         openAPIV3Schema:
-          type: object
+          type: objectglobalFlags
           properties:
             spec:
               type: object
@@ -115,6 +115,21 @@ spec:
                       service:
                         type: string
                         pattern: '^([A-z0-9-_+])*([A-z0-9])$'
+                      multiClusterServices:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            service:
+                              type: string
+                              pattern: '^([A-z0-9-_+])*([A-z0-9])$'
+                            clusterName:
+                              type: string
+                              pattern: '^\/([A-z0-9-_+]+\/)*([A-z0-9-]+\/?)*$'
+                            servicePort:
+                              type: integer
+                              minimum: 1
+                              maximum: 65535
                       loadBalancingMethod:
                         type: string
                       nodeMemberLabel:
