@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"strconv"
 )
 
 func (ser EndPointServices) ProcessEndpoints(ctx context.Context, in *ClusterAgentRequest) (*ServerResponse, error) {
@@ -12,8 +13,10 @@ func (ser EndPointServices) ProcessEndpoints(ctx context.Context, in *ClusterAge
 
 	for _, record := range in.Records {
 
-		rcd.TargetPort = record.TargetPort
-		rcd.SvcPort = record.SvcPort
+		targetPort, _ := strconv.ParseInt(record.TargetPort, 0, 8)
+		rcd.TargetPort.IntVal = int32(targetPort)
+		svcPort, _ := strconv.ParseInt(record.SvcPort, 0, 8)
+		rcd.SvcPort.IntVal = int32(svcPort)
 
 		for _, info := range record.NwInfo {
 			rcd.NetworkInfos = append(rcd.NetworkInfos, AgentNetworkInfo{

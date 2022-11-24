@@ -105,6 +105,7 @@ func (postMgr *PostManager) postConfig(cfg *agentConfig) {
 		log.Errorf("[AS3] Creating new HTTP request error: %v ", err)
 		return
 	}
+	log.Debugf("Request Body %v", req)
 	log.Debugf("[AS3] posting request to %v", cfg.as3APIURL)
 	req.SetBasicAuth(postMgr.BIGIPUsername, postMgr.BIGIPPassword)
 
