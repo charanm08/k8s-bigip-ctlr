@@ -89,60 +89,60 @@ func NewAgent(params AgentParams) *Agent {
 
 	// If running in VXLAN mode, extract the partition name from the tunnel
 	// to be used in configuring a net instance of CCCL for that partition
-	var vxlanPartition string
-	if len(params.VXLANName) > 0 {
-		cleanPath := strings.TrimLeft(params.VXLANName, "/")
-		slashPos := strings.Index(cleanPath, "/")
-		if slashPos == -1 {
-			// No partition
-			vxlanPartition = "Common"
-		} else {
-			// Partition and name
-			vxlanPartition = cleanPath[:slashPos]
+	//var vxlanPartition string
+	/*	if len(params.VXLANName) > 0 {
+			cleanPath := strings.TrimLeft(params.VXLANName, "/")
+			slashPos := strings.Index(cleanPath, "/")
+			if slashPos == -1 {
+				// No partition
+				vxlanPartition = "Common"
+			} else {
+				// Partition and name
+				vxlanPartition = cleanPath[:slashPos]
+			}
 		}
-	}
 
-	gs := globalSection{
-		LogLevel:       params.LogLevel,
-		VerifyInterval: params.VerifyInterval,
-		VXLANPartition: vxlanPartition,
-		DisableLTM:     true,
-		GTM:            params.CCCLGTMAgent,
-		DisableARP:     params.DisableARP,
-	}
+		/*	gs := globalSection{
+				LogLevel:       params.LogLevel,
+				VerifyInterval: params.VerifyInterval,
+				VXLANPartition: vxlanPartition,
+				DisableLTM:     true,
+				GTM:            params.CCCLGTMAgent,
+				DisableARP:     params.DisableARP,
+			}
 
-	bs := bigIPSection{
-		BigIPUsername:   params.PostParams.BIGIPUsername,
-		BigIPPassword:   params.PostParams.BIGIPPassword,
-		BigIPURL:        params.PostParams.BIGIPURL,
-		BigIPPartitions: []string{params.Partition},
-	}
+			/*	bs := bigIPSection{
+					BigIPUsername:   params.PostParams.BIGIPUsername,
+					BigIPPassword:   params.PostParams.BIGIPPassword,
+					BigIPURL:        params.PostParams.BIGIPURL,
+					BigIPPartitions: []string{params.Partition},
+				}
 
-	var gtm gtmBigIPSection
-	if len(params.GTMParams.GTMBigIpUrl) == 0 || len(params.GTMParams.GTMBigIpUsername) == 0 || len(params.GTMParams.GTMBigIpPassword) == 0 {
-		// gs.GTM = false
-		gtm = gtmBigIPSection{
-			GtmBigIPUsername: params.PostParams.BIGIPUsername,
-			GtmBigIPPassword: params.PostParams.BIGIPPassword,
-			GtmBigIPURL:      params.PostParams.BIGIPURL,
-		}
-		log.Warning("Creating GTM with default bigip credentials as GTM BIGIP Url or GTM BIGIP Username or GTM BIGIP Password is missing on CIS args.")
-	} else {
-		gtm = gtmBigIPSection{
-			GtmBigIPUsername: params.GTMParams.GTMBigIpUsername,
-			GtmBigIPPassword: params.GTMParams.GTMBigIpPassword,
-			GtmBigIPURL:      params.GTMParams.GTMBigIpUrl,
-		}
-	}
-	//For IPV6 net config is not required. f5-sdk doesnt support ipv6
-	if !(params.EnableIPV6) {
-		agent.startPythonDriver(
-			gs,
-			bs,
-			gtm,
-			params.PythonBaseDir,
-		)
-	}
+				var gtm gtmBigIPSection
+				if len(params.GTMParams.GTMBigIpUrl) == 0 || len(params.GTMParams.GTMBigIpUsername) == 0 || len(params.GTMParams.GTMBigIpPassword) == 0 {
+					// gs.GTM = false
+					gtm = gtmBigIPSection{
+						GtmBigIPUsername: params.PostParams.BIGIPUsername,
+						GtmBigIPPassword: params.PostParams.BIGIPPassword,
+						GtmBigIPURL:      params.PostParams.BIGIPURL,
+					}
+					log.Warning("Creating GTM with default bigip credentials as GTM BIGIP Url or GTM BIGIP Username or GTM BIGIP Password is missing on CIS args.")
+				} else {
+					gtm = gtmBigIPSection{
+						GtmBigIPUsername: params.GTMParams.GTMBigIpUsername,
+						GtmBigIPPassword: params.GTMParams.GTMBigIpPassword,
+						GtmBigIPURL:      params.GTMParams.GTMBigIpUrl,
+					}
+				}
+				//For IPV6 net config is not required. f5-sdk doesnt support ipv6
+				/*	if !(params.EnableIPV6) {
+					agent.startPythonDriver(
+						gs,
+						bs,
+						gtm,
+						params.PythonBaseDir,
+					)
+				} */
 	// Set the AS3 version for the agent
 	err = agent.IsBigIPAppServicesAvailable()
 	if err != nil {

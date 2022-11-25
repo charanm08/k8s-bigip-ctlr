@@ -398,8 +398,8 @@ func (postMgr *PostManager) getBigipRegKeyURL() string {
 
 func (postMgr *PostManager) getBigipAuthToken(username string, password string) string {
 	return password
-	authPort := "5443"
-	authURL := postMgr.BIGIPURL + ":" + authPort + "/api/v1/login"
+
+	authURL := postMgr.BIGIPURL + "/api/v1/login"
 	req, _ := http.NewRequest("GET", authURL, nil)
 	req.SetBasicAuth(username, password)
 	httpResp, responseMap := postMgr.httpReq(req)
@@ -425,4 +425,5 @@ func (postMgr *PostManager) getBigipAuthToken(username string, password string) 
 	// In case of 503 status code : CIS will exit and auto restart of the
 	// controller might fetch the BIGIP version once BIGIP is available.
 	return ""
+
 }

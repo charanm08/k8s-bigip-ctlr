@@ -1086,9 +1086,9 @@ func (ctlr *Controller) processVirtualServers(
 		rsCfg.customProfiles = make(map[SecretKey]CustomProfile)
 
 		if virtual.Spec.MultiClusterServices != nil {
-			rsCfg.MetaData.multiClusterServices = make(map[string]cisapiv1.MultiClusterService)
+			rsCfg.MetaData.multiClusterServices = make(map[cisapiv1.MultiClusterService]bool)
 			for _, svc := range virtual.Spec.MultiClusterServices {
-				rsCfg.MetaData.multiClusterServices[svc.ClusterName+"/"+svc.Service] = svc
+				rsCfg.MetaData.multiClusterServices[svc] = true
 			}
 		}
 
@@ -1715,8 +1715,7 @@ func (ctlr *Controller) updatePoolMembersForNodePort(
 		for poolKey, _ := range rsCfg.MetaData.multiClusterServices {
 			// check for matching key in the endpoints store
 			for epKey, eps := range ctlr.resources.supplementContextCache.endPoints {
-				if poolKey == epKey {
-
+				if poolKey.ClusterName+"/"+poolKey.Service == epKey {
 					for _, record := range eps.Records {
 						if pool.ServicePort == record.TargetPort {
 							rsCfg.MetaData.Active = true
@@ -3571,6 +3570,7 @@ func (ctlr *Controller) getTLSProfilesForSecret(secret *v1.Secret) []*cisapiv1.T
 func (ctlr *Controller) ProcessEndPointFromAgent() {
 
 	for endPoint := range ctlr.GRPCAgent.EndPointServices.EndPointChan {
+		log.Debug("GRPC request: started processing records")
 
 		if ctlr.resources.supplementContextCache.endPoints == nil {
 			ctlr.resources.supplementContextCache.endPoints = make(map[string]EndPoints)

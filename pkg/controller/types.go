@@ -191,7 +191,7 @@ type (
 		hosts                []string
 		Protocol             string
 		httpTraffic          string
-		multiClusterServices map[string]v12.MultiClusterService
+		multiClusterServices map[v12.MultiClusterService]bool
 	}
 
 	// Virtual Server Key - unique server is Name + Port

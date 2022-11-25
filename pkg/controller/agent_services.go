@@ -2,10 +2,12 @@ package controller
 
 import (
 	"context"
+	log "github.com/F5Networks/k8s-bigip-ctlr/pkg/vlogger"
 	"strconv"
 )
 
 func (ser EndPointServices) ProcessEndpoints(ctx context.Context, in *ClusterAgentRequest) (*ServerResponse, error) {
+	log.Debug("GRPC Request Received")
 	var eps EndPoints
 	eps.SvcName = in.SvcName
 	eps.ClusterName = in.ClusterName
@@ -26,7 +28,7 @@ func (ser EndPointServices) ProcessEndpoints(ctx context.Context, in *ClusterAge
 		}
 		eps.Records = append(eps.Records, rcd)
 	}
-
+	log.Debug("GRPC request records submitted for processing ")
 	ser.EndPointChan <- eps
 	return &ServerResponse{Message: "Hello " + in.ClusterName}, nil
 }
