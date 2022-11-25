@@ -397,6 +397,7 @@ func (postMgr *PostManager) getBigipRegKeyURL() string {
 }
 
 func (postMgr *PostManager) getBigipAuthToken(username string, password string) string {
+	return password
 	authPort := "5443"
 	authURL := postMgr.BIGIPURL + ":" + authPort + "/api/v1/login"
 	req, _ := http.NewRequest("GET", authURL, nil)

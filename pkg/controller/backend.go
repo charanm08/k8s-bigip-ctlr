@@ -164,25 +164,25 @@ func (agent *Agent) Stop() {
 // compatible with BIG-IP, it will return with error if any one of the
 // requirements are not met
 func (agent *Agent) IsBigIPAppServicesAvailable() error {
-	version, build, schemaVersion, err := agent.PostManager.GetBigipAS3Version()
+	_, _, _, err := agent.PostManager.GetBigipAS3Version()
 	if err != nil {
 		log.Errorf("[AS3] %v ", err)
 		return err
 	}
 	am := as3VersionInfo{
-		as3Version:       version,
-		as3SchemaVersion: schemaVersion,
-		as3Release:       version + "-" + build,
+		as3Version:       defaultAS3Version,
+		as3SchemaVersion: fmt.Sprintf("%.2f.0", as3Version),
+		as3Release:       defaultAS3Version + "-" + defaultAS3Build,
 	}
 	agent.AS3VersionInfo = am
-	versionstr := version[:strings.LastIndex(version, ".")]
+	versionstr := defaultAS3Version[:strings.LastIndex(defaultAS3Version, ".")]
 	bigIPAS3Version, err := strconv.ParseFloat(versionstr, 64)
 	if err != nil {
 		log.Errorf("[AS3] Error while converting AS3 version to float")
 		return err
 	}
 	if bigIPAS3Version >= as3SupportedVersion && bigIPAS3Version <= as3Version {
-		log.Debugf("[AS3] BIGIP is serving with AS3 version: %v", version)
+		log.Debugf("[AS3] BIGIP is serving with AS3 version: %v", defaultAS3Version)
 		return nil
 	}
 

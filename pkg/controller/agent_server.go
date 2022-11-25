@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"flag"
 	"fmt"
 	"google.golang.org/grpc"
 	"log"
@@ -9,7 +8,6 @@ import (
 )
 
 func (grpcAgnt *GRPCAgent) StartGRPCServer() {
-	flag.Parse()
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *grpcAgnt.Port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
