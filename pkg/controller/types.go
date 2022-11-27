@@ -19,8 +19,6 @@ package controller
 import (
 	"container/list"
 	ficV1 "github.com/F5Networks/f5-ipam-controller/pkg/ipamapis/apis/fic/v1"
-	v12 "github.com/F5Networks/k8s-bigip-ctlr/config/apis/cis/v1"
-
 	"net/http"
 	"sync"
 
@@ -186,12 +184,11 @@ type (
 		Active       bool
 		ResourceType string
 		// resource name as key, resource kind as value
-		baseResources        map[string]string
-		namespace            string
-		hosts                []string
-		Protocol             string
-		httpTraffic          string
-		multiClusterServices map[v12.MultiClusterService]bool
+		baseResources map[string]string
+		namespace     string
+		hosts         []string
+		Protocol      string
+		httpTraffic   string
 	}
 
 	// Virtual Server Key - unique server is Name + Port
@@ -368,18 +365,25 @@ type (
 
 	// Pool config
 	Pool struct {
-		Name              string             `json:"name"`
-		Partition         string             `json:"-"`
-		ServiceName       string             `json:"-"`
-		ServiceNamespace  string             `json:"-"`
-		ServicePort       intstr.IntOrString `json:"-"`
-		Balance           string             `json:"loadBalancingMethod,omitempty"`
-		Members           []PoolMember       `json:"members"`
-		NodeMemberLabel   string             `json:"-"`
-		MonitorNames      []MonitorName      `json:"monitors,omitempty"`
-		ReselectTries     int32              `json:"reselectTries,omitempty"`
-		ServiceDownAction string             `json:"serviceDownAction,omitempty"`
+		Name                  string        `json:"name"`
+		Partition             string        `json:"-"`
+		Balance               string        `json:"loadBalancingMethod,omitempty"`
+		Members               []PoolMember  `json:"members"`
+		NodeMemberLabel       string        `json:"-"`
+		MonitorNames          []MonitorName `json:"monitors,omitempty"`
+		ReselectTries         int32         `json:"reselectTries,omitempty"`
+		ServiceDownAction     string        `json:"serviceDownAction,omitempty"`
+		Services              []*MultiClusterService
+		MultiServiceSupported bool
 	}
+
+	MultiClusterService struct {
+		ServiceName      string
+		ServiceNamespace string
+		ServicePort      intstr.IntOrString
+		ClusterName      string
+	}
+
 	// Pools is slice of pool
 	Pools []Pool
 

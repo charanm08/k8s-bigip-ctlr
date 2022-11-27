@@ -1085,15 +1085,6 @@ func (ctlr *Controller) processVirtualServers(
 		rsCfg.IRulesMap = make(IRulesMap)
 		rsCfg.customProfiles = make(map[SecretKey]CustomProfile)
 
-		rsCfg.MetaData.multiClusterServices = make(map[cisapiv1.MultiClusterService]bool)
-		for _, pool := range virtual.Spec.Pools {
-			if pool.MultiClusterServices != nil {
-				for _, svc := range pool.MultiClusterServices {
-					rsCfg.MetaData.multiClusterServices[svc] = true
-				}
-			}
-		}
-
 		plc, err := ctlr.getPolicyFromVirtuals(virtuals)
 		if plc != nil {
 			err := ctlr.handleVSResourceConfigForPolicy(rsCfg, plc)
@@ -1687,39 +1678,16 @@ func (ctlr *Controller) updatePoolMembersForNodePort(
 	}
 
 	for index, pool := range rsCfg.Pools {
-		svcName := pool.ServiceName
-		svcKey := pool.ServiceNamespace + "/" + svcName
 
-		poolMemInfo, ok := ctlr.resources.poolMemCache[svcKey]
-		if (!ok || len(poolMemInfo.memberMap) == 0) && pool.ServiceNamespace == namespace {
-			rsCfg.Pools[index].Members = []PoolMember{}
-			continue
-		}
+		if pool.MultiServiceSupported {
 
-		if !(poolMemInfo.svcType == v1.ServiceTypeNodePort ||
-			poolMemInfo.svcType == v1.ServiceTypeLoadBalancer) {
-			log.Debugf("Requested service backend %s not of NodePort or LoadBalancer type",
-				svcKey)
-		}
-
-		for _, svcPort := range poolMemInfo.portSpec {
-			if svcPort.TargetPort == pool.ServicePort {
-				rsCfg.MetaData.Active = true
-				rsCfg.Pools[index].Members =
-					ctlr.getEndpointsForNodePort(svcPort.NodePort, pool.NodeMemberLabel)
-			}
-		}
-
-		// Check if there are any pool members entries from other clusters
-
-		// In each pool, for every multi-custer spec
-		// key - clustername/namespace/servicename
-		for poolKey, _ := range rsCfg.MetaData.multiClusterServices {
-			// check for matching key in the endpoints store
-			for epKey, eps := range ctlr.resources.supplementContextCache.endPoints {
-				if poolKey.ClusterName+"/"+poolKey.Service == epKey {
+			// Spec from VS
+			for _, svc := range pool.Services {
+				svcKey := svc.ClusterName + "/" + svc.ServiceNamespace + "/" + svc.ServiceName
+				// check for matching key in the endpoints store
+				if eps, ok := ctlr.resources.supplementContextCache.endPoints[svcKey]; ok {
 					for _, record := range eps.Records {
-						if pool.ServicePort == record.TargetPort {
+						if svc.ServicePort.IntVal == record.SvcPort.IntVal {
 							rsCfg.MetaData.Active = true
 							rsCfg.Pools[index].Members = append(
 								rsCfg.Pools[index].Members,
@@ -1729,11 +1697,40 @@ func (ctlr *Controller) updatePoolMembersForNodePort(
 
 				}
 			}
-		}
+		} else {
+			svcName := pool.Services[0].ServiceName
+			svcKey := pool.Services[0].ServiceNamespace + "/" + svcName
 
-		//check if endpoints are found
-		if rsCfg.Pools[index].Members == nil {
-			log.Errorf("[CORE]Endpoints could not be fetched for service %v with targetPort %v", svcName, pool.ServicePort.IntVal)
+			// Check if there are any pool members entries from other clusters
+
+			// In each pool, for every multi-custer spec
+			// key - clustername/namespace/servicename
+
+			poolMemInfo, ok := ctlr.resources.poolMemCache[svcKey]
+			if (!ok || len(poolMemInfo.memberMap) == 0) && pool.Services[0].ServiceNamespace == namespace {
+				rsCfg.Pools[index].Members = []PoolMember{}
+				continue
+			}
+
+			if !(poolMemInfo.svcType == v1.ServiceTypeNodePort ||
+				poolMemInfo.svcType == v1.ServiceTypeLoadBalancer) {
+				log.Debugf("Requested service backend %s not of NodePort or LoadBalancer type",
+					svcKey)
+			}
+
+			for _, svcPort := range poolMemInfo.portSpec {
+				if svcPort.TargetPort == pool.Services[0].ServicePort {
+					rsCfg.MetaData.Active = true
+					rsCfg.Pools[index].Members =
+						ctlr.getEndpointsForNodePort(svcPort.NodePort, pool.NodeMemberLabel)
+				}
+			}
+
+			//check if endpoints are found
+			if rsCfg.Pools[index].Members == nil {
+				log.Errorf("[CORE]Endpoints could not be fetched for service %v with targetPort %v", svcName, pool.Services[0].ServicePort.IntVal)
+			}
+
 		}
 	}
 }
@@ -1745,18 +1742,18 @@ func (ctlr *Controller) updatePoolMembersForCluster(
 	namespace string,
 ) {
 	for index, pool := range rsCfg.Pools {
-		svcName := pool.ServiceName
-		svcKey := pool.ServiceNamespace + "/" + svcName
+		svcName := pool.Services[0].ServiceName
+		svcKey := pool.Services[0].ServiceNamespace + "/" + svcName
 
 		poolMemInfo, ok := ctlr.resources.poolMemCache[svcKey]
 
-		if (!ok || len(poolMemInfo.memberMap) == 0) && pool.ServiceNamespace == namespace {
+		if (!ok || len(poolMemInfo.memberMap) == 0) && pool.Services[0].ServiceNamespace == namespace {
 			rsCfg.Pools[index].Members = []PoolMember{}
 			continue
 		}
 
 		for ref, mems := range poolMemInfo.memberMap {
-			if ref.name != pool.ServicePort.StrVal && ref.port != pool.ServicePort.IntVal {
+			if ref.name != pool.Services[0].ServicePort.StrVal && ref.port != pool.Services[0].ServicePort.IntVal {
 				continue
 			}
 			rsCfg.MetaData.Active = true
@@ -1764,7 +1761,7 @@ func (ctlr *Controller) updatePoolMembersForCluster(
 		}
 		//check if endpoints are found
 		if rsCfg.Pools[index].Members == nil {
-			log.Errorf("[CORE]Endpoints could not be fetched for service %v with targetPort %v", svcName, pool.ServicePort.IntVal)
+			log.Errorf("[CORE]Endpoints could not be fetched for service %v with targetPort %v", svcName, pool.Services[0].ServicePort.IntVal)
 		}
 	}
 }
@@ -1782,8 +1779,8 @@ func (ctlr *Controller) updatePoolMembersForNPL(
 	}
 
 	for index, pool := range rsCfg.Pools {
-		svcName := pool.ServiceName
-		svcKey := pool.ServiceNamespace + "/" + svcName
+		svcName := pool.Services[0].ServiceName
+		svcKey := pool.Services[0].ServiceNamespace + "/" + svcName
 		poolMemInfo := ctlr.resources.poolMemCache[svcKey]
 		if poolMemInfo.svcType == v1.ServiceTypeNodePort {
 			log.Debugf("Requested service backend %s is of type NodePort is not valid for nodeportlocal mode.",
@@ -1793,7 +1790,7 @@ func (ctlr *Controller) updatePoolMembersForNPL(
 		pods := ctlr.GetPodsForService(namespace, svcName, true)
 		if pods != nil {
 			for _, svcPort := range poolMemInfo.portSpec {
-				if svcPort.TargetPort == pool.ServicePort {
+				if svcPort.TargetPort == pool.Services[0].ServicePort {
 					podPort := svcPort.TargetPort
 					rsCfg.MetaData.Active = true
 					rsCfg.Pools[index].Members =
@@ -2978,6 +2975,16 @@ func (ctlr *Controller) processIngressLink(
 			port.Port,
 		)
 		svcPort := intstr.IntOrString{IntVal: port.Port}
+
+		multiCluster := MultiClusterService{
+			ServicePort:      svcPort,
+			ServiceName:      svc.Name,
+			ServiceNamespace: svc.Namespace,
+		}
+
+		var svcs []*MultiClusterService
+		svcs = append(svcs, &multiCluster)
+
 		pool := Pool{
 			Name: formatPoolName(
 				svc.ObjectMeta.Namespace,
@@ -2986,10 +2993,8 @@ func (ctlr *Controller) processIngressLink(
 				"",
 				"",
 			),
-			Partition:        rsCfg.Virtual.Partition,
-			ServiceName:      svc.ObjectMeta.Name,
-			ServicePort:      svcPort,
-			ServiceNamespace: svc.ObjectMeta.Namespace,
+			Partition: rsCfg.Virtual.Partition,
+			Services:  svcs,
 		}
 		monitorName := fmt.Sprintf("%s_monitor", pool.Name)
 		rsCfg.Monitors = append(

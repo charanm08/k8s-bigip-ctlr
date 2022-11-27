@@ -1313,13 +1313,24 @@ var _ = Describe("Worker Tests", func() {
 				portSpec:  []v1.ServicePort{{Name: "https", Port: 443, NodePort: 32443, TargetPort: intstr.FromInt(443), Protocol: "TCP"}},
 				memberMap: memberMap,
 			}
-			pool := Pool{ServiceNamespace: "default",
-				ServiceName: "svc-1",
-				ServicePort: intstr.FromInt(443)}
-			pool2 := Pool{ServiceNamespace: "default",
-				ServiceName: "svc-2",
-				ServicePort: intstr.FromInt(443),
-				Members:     members}
+
+			var svcs []*MultiClusterService
+			multiCluster := MultiClusterService{
+				ServicePort:      intstr.FromInt(443),
+				ServiceName:      "svc-1",
+				ServiceNamespace: "default",
+			}
+			svcs = append(svcs, &multiCluster)
+			pool := Pool{Services: svcs}
+
+			multiCluster = MultiClusterService{
+				ServicePort:      intstr.FromInt(443),
+				ServiceName:      "svc-2",
+				ServiceNamespace: "default",
+			}
+			svcs = make([]*MultiClusterService, 0)
+			svcs = append(svcs, &multiCluster)
+			pool2 := Pool{Services: svcs}
 			rsCfg := &ResourceConfig{Pools: []Pool{pool, {}}}
 			rsCfg2 := &ResourceConfig{Pools: []Pool{pool2}}
 			mockCtlr.updatePoolMembersForNodePort(rsCfg2, "default")

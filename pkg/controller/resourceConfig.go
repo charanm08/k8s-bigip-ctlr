@@ -266,18 +266,24 @@ func (ctlr *Controller) framePoolName(ns string, pool cisapiv1.Pool, host string
 
 	poolName := pool.Name
 	if poolName == "" {
-		targetPort := intstr.IntOrString{IntVal: pool.ServicePort}
 
-		if (intstr.IntOrString{}) == targetPort {
-			svcNamespace := ns
-			if pool.ServiceNamespace != "" {
-				svcNamespace = pool.ServiceNamespace
+		if pool.MultiClusterServices != nil {
+			poolName = formatPoolName(ns,
+				pool.MultiClusterServices[0].ClusterName+"/"+pool.MultiClusterServices[0].Service,
+				intstr.IntOrString{IntVal: pool.MultiClusterServices[0].ServicePort}, pool.NodeMemberLabel, host)
+		} else {
+			targetPort := intstr.IntOrString{IntVal: pool.ServicePort}
+
+			if (intstr.IntOrString{}) == targetPort {
+				svcNamespace := ns
+				if pool.ServiceNamespace != "" {
+					svcNamespace = pool.ServiceNamespace
+				}
+				targetPort = ctlr.fetchTargetPort(svcNamespace, pool.Service, pool.ServicePort)
 			}
-			targetPort = ctlr.fetchTargetPort(svcNamespace, pool.Service, pool.ServicePort)
+			poolName = formatPoolName(ns, pool.Service, targetPort, pool.NodeMemberLabel, host)
 		}
-		poolName = formatPoolName(ns, pool.Service, targetPort, pool.NodeMemberLabel, host)
 	}
-
 	return poolName
 }
 
@@ -336,7 +342,7 @@ func (ctlr *Controller) getSvcDepResources(svcDepRscKey string) map[string]struc
 
 func (ctlr *Controller) updateSvcDepResources(rsName string, rsCfg *ResourceConfig) {
 	for _, pool := range rsCfg.Pools {
-		svcDepRscKey := pool.ServiceNamespace + "_" + pool.ServiceName
+		svcDepRscKey := pool.Services[0].ServiceNamespace + "_" + pool.Services[0].ServiceName
 		if resources, found := ctlr.resources.svcResourceCache[svcDepRscKey]; found {
 			if _, found := resources[rsName]; !found {
 				ctlr.resources.svcResourceCache[svcDepRscKey][rsName] = struct{}{}
@@ -355,7 +361,7 @@ func (ctlr *Controller) deleteSvcDepResource(rsName string, rsCfg *ResourceConfi
 	}
 
 	for _, pool := range rsCfg.Pools {
-		svcDepRscKey := pool.ServiceNamespace + "_" + pool.ServiceName
+		svcDepRscKey := pool.Services[0].ServiceNamespace + "_" + pool.Services[0].ServiceName
 		if resources, found := ctlr.resources.svcResourceCache[svcDepRscKey]; found {
 			if _, found := resources[rsName]; found {
 				delete(ctlr.resources.svcResourceCache[svcDepRscKey], rsName)
@@ -434,16 +440,20 @@ func (ctlr *Controller) prepareRSConfigFromVirtualServer(
 		if pl.ServiceNamespace != "" {
 			svcNamespace = pl.ServiceNamespace
 		}
+
+		svcs := PrepareMultiServiceConfigfromPools(&pl, targetPort.IntVal, svcNamespace)
+
 		pool := Pool{
 			Name:              poolName,
 			Partition:         rsCfg.Virtual.Partition,
-			ServiceName:       pl.Service,
-			ServiceNamespace:  svcNamespace,
-			ServicePort:       targetPort,
 			NodeMemberLabel:   pl.NodeMemberLabel,
 			Balance:           pl.Balance,
 			ReselectTries:     pl.ReselectTries,
 			ServiceDownAction: pl.ServiceDownAction,
+			Services:          svcs,
+		}
+		if pl.MultiClusterServices != nil {
+			pool.MultiServiceSupported = true
 		}
 		if pl.Monitor.Name != "" && pl.Monitor.Reference == "bigip" {
 			pool.MonitorNames = append(pool.MonitorNames, MonitorName{Name: pl.Monitor.Name, Reference: pl.Monitor.Reference})
@@ -1580,16 +1590,15 @@ func (ctlr *Controller) prepareRSConfigFromTransportServer(
 		targetPort = intstr.IntOrString{IntVal: vs.Spec.Pool.ServicePort}
 	}
 
+	svcs := PrepareMultiServiceConfigfromPools(&vs.Spec.Pool, targetPort.IntVal, "")
 	pool := Pool{
 		Name:              poolName,
 		Partition:         rsCfg.Virtual.Partition,
-		ServiceName:       vs.Spec.Pool.Service,
-		ServiceNamespace:  vs.ObjectMeta.Namespace,
-		ServicePort:       targetPort,
 		NodeMemberLabel:   vs.Spec.Pool.NodeMemberLabel,
 		Balance:           vs.Spec.Pool.Balance,
 		ReselectTries:     vs.Spec.Pool.ReselectTries,
 		ServiceDownAction: vs.Spec.Pool.ServiceDownAction,
+		Services:          svcs,
 	}
 	if vs.Spec.Pool.Monitor.Name != "" && vs.Spec.Pool.Monitor.Reference == BIGIP {
 		pool.MonitorNames = append(pool.MonitorNames, MonitorName{Name: monitorName, Reference: vs.Spec.Pool.Monitor.Reference})
@@ -1704,13 +1713,21 @@ func (ctlr *Controller) prepareRSConfigFromLBService(
 		svc.Name,
 		svcPort.TargetPort,
 		"", "")
-	pool := Pool{
-		Name:             poolName,
-		Partition:        rsCfg.Virtual.Partition,
+
+	multiCluster := MultiClusterService{
+		ServicePort:      svcPort.TargetPort,
 		ServiceName:      svc.Name,
 		ServiceNamespace: svc.Namespace,
-		ServicePort:      svcPort.TargetPort,
-		NodeMemberLabel:  "",
+	}
+
+	var svcs []*MultiClusterService
+	svcs = append(svcs, &multiCluster)
+
+	pool := Pool{
+		Name:            poolName,
+		Partition:       rsCfg.Virtual.Partition,
+		NodeMemberLabel: "",
+		Services:        svcs,
 	}
 
 	// Health Monitor Annotation
@@ -1747,6 +1764,30 @@ func (ctlr *Controller) prepareRSConfigFromLBService(
 	}
 
 	return nil
+}
+
+func PrepareMultiServiceConfigfromPools(pool *cisapiv1.Pool, targetPort int32, svcNamespace string) []*MultiClusterService {
+
+	var svcs []*MultiClusterService
+	if pool.MultiClusterServices != nil {
+		for _, svc := range pool.MultiClusterServices {
+			s := &MultiClusterService{
+				ServicePort:      intstr.IntOrString{IntVal: svc.ServicePort},
+				ClusterName:      svc.ClusterName,
+				ServiceNamespace: strings.Split(svc.Service, "/")[0],
+				ServiceName:      strings.Split(svc.Service, "/")[1]}
+			svcs = append(svcs, s)
+		}
+	} else {
+		s := &MultiClusterService{
+			ServicePort:      intstr.IntOrString{IntVal: targetPort},
+			ServiceNamespace: svcNamespace,
+			ServiceName:      pool.Service,
+		}
+		svcs = append(svcs, s)
+	}
+	return svcs
+
 }
 
 // Returns Partition and resourceName
@@ -1995,7 +2036,7 @@ func (ctlr *Controller) handleRouteTLS(
 					formatPoolName(
 						route.ObjectMeta.Namespace,
 						route.Spec.To.Name,
-						pl.ServicePort,
+						pl.Services[0].ServicePort,
 						"",
 						""),
 					[]string{route.Spec.Host},

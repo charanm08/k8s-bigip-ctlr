@@ -58,7 +58,7 @@ func (ctlr *Controller) prepareVirtualServerRules(
 
 	for _, pl := range vs.Spec.Pools {
 		// Service cannot be empty
-		if pl.Service == "" {
+		if pl.Service == "" && pl.MultiClusterServices == nil {
 			continue
 		}
 

@@ -271,6 +271,15 @@ func (ctlr *Controller) prepareResourceConfigFromRoute(
 	backendSvcs := GetRouteBackends(route)
 
 	for _, bs := range backendSvcs {
+		multiCluster := MultiClusterService{
+			ServicePort:      servicePort,
+			ServiceName:      bs.Name,
+			ServiceNamespace: route.Namespace,
+		}
+
+		var svcs []*MultiClusterService
+		svcs = append(svcs, &multiCluster)
+
 		pool := Pool{
 			Name: formatPoolName(
 				route.Namespace,
@@ -279,12 +288,10 @@ func (ctlr *Controller) prepareResourceConfigFromRoute(
 				"",
 				"",
 			),
-			Partition:        rsCfg.Virtual.Partition,
-			ServiceName:      bs.Name,
-			ServiceNamespace: route.Namespace,
-			ServicePort:      servicePort,
-			NodeMemberLabel:  "",
-			Balance:          route.ObjectMeta.Annotations[resource.F5VsBalanceAnnotation],
+			Partition:       rsCfg.Virtual.Partition,
+			NodeMemberLabel: "",
+			Balance:         route.ObjectMeta.Annotations[resource.F5VsBalanceAnnotation],
+			Services:        svcs,
 		}
 
 		// Handle Route health monitors
@@ -322,7 +329,7 @@ func (ctlr *Controller) prepareResourceConfigFromRoute(
 			svcPods := ctlr.GetPodsForService(route.Namespace, bs.Name, false)
 
 			if svcPods != nil {
-				port := pool.ServicePort.IntVal
+				port := pool.Services[0].ServicePort.IntVal
 				pod := svcPods.Items[0]
 
 			out:
