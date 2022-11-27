@@ -414,6 +414,11 @@ func (in *Pool) DeepCopyInto(out *Pool) {
 		*out = make([]Monitor, len(*in))
 		copy(*out, *in)
 	}
+	if in.MultiClusterServices != nil {
+		in, out := &in.MultiClusterServices, &out.MultiClusterServices
+		*out = make([]MultiClusterService, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 
@@ -789,11 +794,6 @@ func (in *VirtualServerSpec) DeepCopyInto(out *VirtualServerSpec) {
 	if in.AllowSourceRange != nil {
 		in, out := &in.AllowSourceRange, &out.AllowSourceRange
 		*out = make([]string, len(*in))
-		copy(*out, *in)
-	}
-	if in.MultiClusterServices != nil {
-		in, out := &in.MultiClusterServices, &out.MultiClusterServices
-		*out = make([]MultiClusterService, len(*in))
 		copy(*out, *in)
 	}
 	return
