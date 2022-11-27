@@ -1085,10 +1085,12 @@ func (ctlr *Controller) processVirtualServers(
 		rsCfg.IRulesMap = make(IRulesMap)
 		rsCfg.customProfiles = make(map[SecretKey]CustomProfile)
 
-		if virtual.Spec.MultiClusterServices != nil {
-			rsCfg.MetaData.multiClusterServices = make(map[cisapiv1.MultiClusterService]bool)
-			for _, svc := range virtual.Spec.MultiClusterServices {
-				rsCfg.MetaData.multiClusterServices[svc] = true
+		rsCfg.MetaData.multiClusterServices = make(map[cisapiv1.MultiClusterService]bool)
+		for _, pool := range virtual.Spec.Pools {
+			if pool.MultiClusterServices != nil {
+				for _, svc := range pool.MultiClusterServices {
+					rsCfg.MetaData.multiClusterServices[svc] = true
+				}
 			}
 		}
 

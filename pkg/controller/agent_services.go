@@ -12,12 +12,14 @@ func (ser EndPointServices) ProcessEndpoints(ctx context.Context, in *ClusterAge
 	eps.SvcName = in.SvcName
 	eps.ClusterName = in.ClusterName
 	var rcd *AgentRecord
-
+	rcd = &AgentRecord{}
+	rcd.NetworkInfos = make([]AgentNetworkInfo, 0)
+	eps.Records = make([]AgentRecord, 0)
 	for _, record := range in.Records {
 
-		targetPort, _ := strconv.ParseInt(record.TargetPort, 0, 8)
+		targetPort, _ := strconv.ParseInt(record.TargetPort, 0, 32)
 		rcd.TargetPort.IntVal = int32(targetPort)
-		svcPort, _ := strconv.ParseInt(record.SvcPort, 0, 8)
+		svcPort, _ := strconv.ParseInt(record.SvcPort, 0, 32)
 		rcd.SvcPort.IntVal = int32(svcPort)
 
 		for _, info := range record.NwInfo {
@@ -26,7 +28,7 @@ func (ser EndPointServices) ProcessEndpoints(ctx context.Context, in *ClusterAge
 				Mac:      info.EndPoint,
 			})
 		}
-		eps.Records = append(eps.Records, rcd)
+		eps.Records = append(eps.Records, *rcd)
 	}
 	log.Debug("GRPC request records submitted for processing ")
 	ser.EndPointChan <- eps

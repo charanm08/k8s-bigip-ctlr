@@ -83,7 +83,7 @@ type (
 	EndPoints struct {
 		SvcName     string
 		ClusterName string
-		Records     []*AgentRecord
+		Records     []AgentRecord
 	}
 	AgentRecord struct {
 		SvcPort      intstr.IntOrString

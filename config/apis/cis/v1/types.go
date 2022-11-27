@@ -26,30 +26,29 @@ type VirtualServerStatus struct {
 
 // VirtualServerSpec is the spec of the VirtualServer resource.
 type VirtualServerSpec struct {
-	Host                   string                `json:"host,omitempty"`
-	HostGroup              string                `json:"hostGroup,omitempty"`
-	VirtualServerAddress   string                `json:"virtualServerAddress,omitempty"`
-	IPAMLabel              string                `json:"ipamLabel,omitempty"`
-	VirtualServerName      string                `json:"virtualServerName,omitempty"`
-	VirtualServerHTTPPort  int32                 `json:"virtualServerHTTPPort,omitempty"`
-	VirtualServerHTTPSPort int32                 `json:"virtualServerHTTPSPort,omitempty"`
-	Pools                  []Pool                `json:"pools,omitempty"`
-	TLSProfileName         string                `json:"tlsProfileName,omitempty"`
-	HTTPTraffic            string                `json:"httpTraffic,omitempty"`
-	SNAT                   string                `json:"snat,omitempty"`
-	WAF                    string                `json:"waf,omitempty"`
-	RewriteAppRoot         string                `json:"rewriteAppRoot,omitempty"`
-	AllowVLANs             []string              `json:"allowVlans,omitempty"`
-	IRules                 []string              `json:"iRules,omitempty"`
-	ServiceIPAddress       []ServiceAddress      `json:"serviceAddress,omitempty"`
-	PolicyName             string                `json:"policyName,omitempty"`
-	PersistenceProfile     string                `json:"persistenceProfile,omitempty"`
-	ProfileMultiplex       string                `json:"profileMultiplex,omitempty"`
-	DOS                    string                `json:"dos,omitempty"`
-	BotDefense             string                `json:"botDefense,omitempty"`
-	Profiles               ProfileSpec           `json:"profiles,omitempty"`
-	AllowSourceRange       []string              `json:"allowSourceRange,omitempty"`
-	MultiClusterServices   []MultiClusterService `json:"multiClusterServices,omitempty"`
+	Host                   string           `json:"host,omitempty"`
+	HostGroup              string           `json:"hostGroup,omitempty"`
+	VirtualServerAddress   string           `json:"virtualServerAddress,omitempty"`
+	IPAMLabel              string           `json:"ipamLabel,omitempty"`
+	VirtualServerName      string           `json:"virtualServerName,omitempty"`
+	VirtualServerHTTPPort  int32            `json:"virtualServerHTTPPort,omitempty"`
+	VirtualServerHTTPSPort int32            `json:"virtualServerHTTPSPort,omitempty"`
+	Pools                  []Pool           `json:"pools,omitempty"`
+	TLSProfileName         string           `json:"tlsProfileName,omitempty"`
+	HTTPTraffic            string           `json:"httpTraffic,omitempty"`
+	SNAT                   string           `json:"snat,omitempty"`
+	WAF                    string           `json:"waf,omitempty"`
+	RewriteAppRoot         string           `json:"rewriteAppRoot,omitempty"`
+	AllowVLANs             []string         `json:"allowVlans,omitempty"`
+	IRules                 []string         `json:"iRules,omitempty"`
+	ServiceIPAddress       []ServiceAddress `json:"serviceAddress,omitempty"`
+	PolicyName             string           `json:"policyName,omitempty"`
+	PersistenceProfile     string           `json:"persistenceProfile,omitempty"`
+	ProfileMultiplex       string           `json:"profileMultiplex,omitempty"`
+	DOS                    string           `json:"dos,omitempty"`
+	BotDefense             string           `json:"botDefense,omitempty"`
+	Profiles               ProfileSpec      `json:"profiles,omitempty"`
+	AllowSourceRange       []string         `json:"allowSourceRange,omitempty"`
 }
 
 type MultiClusterService struct {
@@ -69,18 +68,19 @@ type ServiceAddress struct {
 
 // Pool defines a pool object in BIG-IP.
 type Pool struct {
-	Name              string    `json:"name,omitempty"`
-	Path              string    `json:"path,omitempty"`
-	Service           string    `json:"service"`
-	ServicePort       int32     `json:"servicePort"`
-	NodeMemberLabel   string    `json:"nodeMemberLabel,omitempty"`
-	Monitor           Monitor   `json:"monitor"`
-	Monitors          []Monitor `json:"monitors"`
-	Rewrite           string    `json:"rewrite,omitempty"`
-	Balance           string    `json:"loadBalancingMethod,omitempty"`
-	ServiceNamespace  string    `json:"serviceNamespace,omitempty"`
-	ReselectTries     int32     `json:"reselectTries,omitempty"`
-	ServiceDownAction string    `json:"serviceDownAction,omitempty"`
+	Name                 string                `json:"name,omitempty"`
+	Path                 string                `json:"path,omitempty"`
+	Service              string                `json:"service"`
+	ServicePort          int32                 `json:"servicePort"`
+	NodeMemberLabel      string                `json:"nodeMemberLabel,omitempty"`
+	Monitor              Monitor               `json:"monitor"`
+	Monitors             []Monitor             `json:"monitors"`
+	Rewrite              string                `json:"rewrite,omitempty"`
+	Balance              string                `json:"loadBalancingMethod,omitempty"`
+	ServiceNamespace     string                `json:"serviceNamespace,omitempty"`
+	ReselectTries        int32                 `json:"reselectTries,omitempty"`
+	ServiceDownAction    string                `json:"serviceDownAction,omitempty"`
+	MultiClusterServices []MultiClusterService `json:"multiClusterServices,omitempty"`
 }
 
 // Monitor defines a monitor object in BIG-IP.
