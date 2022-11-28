@@ -111,6 +111,7 @@ func (postMgr *PostManager) postConfig(cfg *agentConfig) {
 	token := postMgr.getBigipAuthToken(postMgr.BIGIPUsername, postMgr.BIGIPPassword)
 	// add authorization header to the req
 	req.Header.Add("Authorization", "Bearer "+token)
+	req.Header.Add("Content-Type", "application/json;charset=UTF-8")
 	httpResp, responseMap := postMgr.httpPOST(req)
 	if httpResp == nil || responseMap == nil {
 		return
@@ -397,8 +398,6 @@ func (postMgr *PostManager) getBigipRegKeyURL() string {
 }
 
 func (postMgr *PostManager) getBigipAuthToken(username string, password string) string {
-	return password
-
 	authURL := postMgr.BIGIPURL + "/api/v1/login"
 	req, _ := http.NewRequest("GET", authURL, nil)
 	req.SetBasicAuth(username, password)
