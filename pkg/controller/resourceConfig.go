@@ -410,7 +410,7 @@ func (ctlr *Controller) prepareRSConfigFromVirtualServer(
 	var snat string
 	snat = DEFAULT_SNAT
 	var pools Pools
-	var rules *Rules
+	// var rules *Rules
 	var monitors []Monitor
 
 	framedPools := make(map[string]struct{})
@@ -565,14 +565,19 @@ func (ctlr *Controller) prepareRSConfigFromVirtualServer(
 
 	// skip the policy creation for passthrough termination
 	if !passthroughVS {
-		rules = ctlr.prepareVirtualServerRules(vs, rsCfg)
-		if rules == nil {
-			return fmt.Errorf("failed to create LTM Rules")
-		}
-
-		policyName := formatPolicyName(vs.Spec.Host, vs.Spec.HostGroup, rsCfg.Virtual.Name)
-
-		rsCfg.AddRuleToPolicy(policyName, vs.Namespace, rules)
+		rsCfg.Virtual.PoolName = ctlr.framePoolName(
+			vs.ObjectMeta.Namespace,
+			vs.Spec.Pools[0],
+			vs.Spec.Host,
+		)
+		//rules = ctlr.prepareVirtualServerRules(vs, rsCfg)
+		//if rules == nil {
+		//	return fmt.Errorf("failed to create LTM Rules")
+		//}
+		//
+		//policyName := formatPolicyName(vs.Spec.Host, vs.Spec.HostGroup, rsCfg.Virtual.Name)
+		//
+		//rsCfg.AddRuleToPolicy(policyName, vs.Namespace, rules)
 	}
 
 	// Attach user specified iRules

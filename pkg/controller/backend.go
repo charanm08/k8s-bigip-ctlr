@@ -727,8 +727,8 @@ func (agent *Agent) createAS3LTMConfigADC(config ResourceConfigRequest) as3ADC {
 
 		// Create AS3 Tenant
 		tenantDecl := as3Tenant{
-			"class":              "Tenant",
-			"defaultRouteDomain": config.defaultRouteDomain,
+			"class": "Tenant",
+			// "defaultRouteDomain": config.defaultRouteDomain,
 			as3SharedApplication: sharedApp,
 		}
 		adc[tenantName] = tenantDecl
@@ -941,9 +941,9 @@ func createServiceDecl(cfg *ResourceConfig, sharedApp as3Application, tenant str
 	}
 	if cfg.Virtual.TLSTermination != TLSPassthrough {
 		svc.Layer4 = cfg.Virtual.IpProtocol
-		svc.Source = "0.0.0.0/0"
-		svc.TranslateServerAddress = true
-		svc.TranslateServerPort = true
+		//svc.Source = "0.0.0.0/0"
+		//svc.TranslateServerAddress = true
+		//svc.TranslateServerPort = true
 		svc.Class = "Service_HTTP"
 	} else {
 		if len(cfg.Virtual.PersistenceProfile) == 0 {
