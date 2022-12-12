@@ -105,6 +105,7 @@ const (
 	as3Version        = 3.27
 	defaultAS3Version = "3.27.0"
 	defaultAS3Build   = "3"
+	gRPCServerPort    = 5000
 )
 
 // NewController creates a new Controller Instance.
@@ -127,13 +128,14 @@ func NewController(params Params) *Controller {
 	}
 
 	log.Debug("Controller Created")
-
-	ctlr.GRPCAgent = &GRPCAgent{
-		Port: params.GRPCServerPort,
-		EndPointServices: &EndPointServices{
-			UnimplementedEndPointServiceServer: UnimplementedEndPointServiceServer{},
-			EndPointChan:                       make(chan EndPoints),
-		},
+	if params.GRPCMode == true {
+		ctlr.GRPCAgent = &GRPCAgent{
+			Port: gRPCServerPort,
+			EndPointServices: &EndPointServices{
+				UnimplementedEndPointServiceServer: UnimplementedEndPointServiceServer{},
+				EndPointChan:                       make(chan EndPoints),
+			},
+		}
 	}
 	ctlr.resourceQueue = workqueue.NewNamedRateLimitingQueue(
 		workqueue.DefaultControllerRateLimiter(), "nextgen-resource-controller")
@@ -400,8 +402,10 @@ func (ctlr *Controller) Start() {
 
 	ctlr.nodePoller.Run()
 
-	go ctlr.GRPCAgent.StartGRPCServer()
-	go ctlr.ProcessEndPointFromAgent()
+	if ctlr.GRPCAgent != nil {
+		go ctlr.GRPCAgent.StartGRPCServer()
+		go ctlr.ProcessEndPointFromAgent()
+	}
 
 	stopChan := make(chan struct{})
 

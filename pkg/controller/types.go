@@ -100,7 +100,7 @@ type (
 
 	GRPCAgent struct {
 		EndPointServices *EndPointServices
-		Port             *int
+		Port             int
 		declUpdate       sync.Mutex
 	}
 
@@ -136,7 +136,7 @@ type (
 		Mode               ControllerMode
 		RouteSpecConfigmap string
 		RouteLabel         string
-		GRPCServerPort     *int
+		GRPCMode           bool
 	}
 
 	// CRInformer defines the structure of Custom Resource Informer

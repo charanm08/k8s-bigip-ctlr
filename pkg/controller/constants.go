@@ -8,6 +8,7 @@ const (
 	KubernetesMode     ControllerMode = "kubernetes"
 	OpenShiftMode      ControllerMode = "openshift"
 	CustomResourceMode ControllerMode = "customresource"
+	BIGIPNextMode      ControllerMode = "bigip-next"
 
 	Create = "Create"
 	Update = "Update"

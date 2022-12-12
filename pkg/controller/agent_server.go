@@ -9,7 +9,7 @@ import (
 )
 
 func (grpcAgnt *GRPCAgent) StartGRPCServer() {
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *grpcAgnt.Port))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", grpcAgnt.Port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
