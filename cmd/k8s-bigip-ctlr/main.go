@@ -805,13 +805,14 @@ func initController(
 ) *controller.Controller {
 
 	postMgrParams := controller.PostParams{
-		BIGIPUsername: *bigIPUsername,
-		BIGIPPassword: *bigIPPassword,
-		BIGIPURL:      *bigIPURL,
-		TrustedCerts:  "",
-		SSLInsecure:   true,
-		AS3PostDelay:  *as3PostDelay,
-		LogResponse:   *logAS3Response,
+		BIGIPUsername:  *bigIPUsername,
+		BIGIPPassword:  *bigIPPassword,
+		BIGIPURL:       *bigIPURL,
+		ControllerMode: *controllerMode,
+		TrustedCerts:   "",
+		SSLInsecure:    true,
+		AS3PostDelay:   *as3PostDelay,
+		LogResponse:    *logAS3Response,
 	}
 
 	GtmParams := controller.GTMParams{

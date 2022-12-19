@@ -58,6 +58,8 @@ const (
 	// IPAM is a F5 Custom Resource Kind
 	IPAM = "IPAM"
 	// Service is a k8s native Service Resource.
+	RemoteClusterService = "RemoteClusterService"
+	// Service is a k8s native Service Resource.
 	Service = "Service"
 	//Pod  is a k8s native object
 	Pod = "Pod"

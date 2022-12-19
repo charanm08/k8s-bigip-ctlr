@@ -107,10 +107,14 @@ func (postMgr *PostManager) postConfig(cfg *agentConfig) {
 	}
 	log.Debugf("Request Body %v", req)
 	log.Debugf("[AS3] posting request to %v", cfg.as3APIURL)
-	//req.SetBasicAuth(postMgr.BIGIPUsername, postMgr.BIGIPPassword)
-	token := postMgr.getBigipAuthToken(postMgr.BIGIPUsername, postMgr.BIGIPPassword)
-	// add authorization header to the req
-	req.Header.Add("Authorization", "Bearer "+token)
+
+	if postMgr.ControllerMode == string(BIGIPNextMode) {
+		token := postMgr.getBigipAuthToken(postMgr.BIGIPUsername, postMgr.BIGIPPassword)
+		// add authorization header to the req
+		req.Header.Add("Authorization", "Bearer "+token)
+	} else {
+		req.SetBasicAuth(postMgr.BIGIPUsername, postMgr.BIGIPPassword)
+	}
 	req.Header.Add("Content-Type", "application/json;charset=UTF-8")
 	httpResp, responseMap := postMgr.httpPOST(req)
 	if httpResp == nil || responseMap == nil {

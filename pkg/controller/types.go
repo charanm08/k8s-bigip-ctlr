@@ -696,7 +696,8 @@ type (
 		SSLInsecure   bool
 		AS3PostDelay  int
 		//Log the AS3 response body in Controller logs
-		LogResponse bool
+		LogResponse    bool
+		ControllerMode string
 	}
 
 	GTMParams struct {

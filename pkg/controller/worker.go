@@ -308,6 +308,23 @@ func (ctlr *Controller) processResources() bool {
 				}
 			}
 		}
+	case RemoteClusterService:
+		svc := rKey.rsc.(*v1.Service)
+		svcObj := ctlr.GetService(svc.Namespace, svc.Name)
+
+		virtuals := ctlr.getVirtualServersForService(svcObj)
+		// If nil No Virtuals are effected with the change in service.
+		if nil != virtuals {
+			for _, virtual := range virtuals {
+				err := ctlr.processVirtualServers(virtual, false)
+				if err != nil {
+					// TODO
+					utilruntime.HandleError(fmt.Errorf("Sync %v failed with %v", key, err))
+					isRetryableError = true
+				}
+			}
+		}
+
 	case Service:
 		svc := rKey.rsc.(*v1.Service)
 
@@ -3590,6 +3607,14 @@ func (ctlr *Controller) ProcessEndPointFromAgent() {
 			ctlr.resources.supplementContextCache.endPoints = make(map[string]EndPoints)
 		}
 		ctlr.resources.supplementContextCache.endPoints[endPoint.ClusterName+"/"+endPoint.SvcName] = endPoint
+
+		key := &rqKey{
+			namespace: strings.Split(endPoint.SvcName, "/")[0],
+			kind:      RemoteClusterService,
+			rscName:   strings.Split(endPoint.SvcName, "/")[1],
+			event:     Update,
+		}
+		ctlr.resourceQueue.Add(key)
 	}
 
 }
