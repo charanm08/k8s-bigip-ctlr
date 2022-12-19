@@ -19,6 +19,7 @@ package controller
 import (
 	"container/list"
 	ficV1 "github.com/F5Networks/f5-ipam-controller/pkg/ipamapis/apis/fic/v1"
+	"google.golang.org/grpc"
 	"net/http"
 	"sync"
 
@@ -70,6 +71,7 @@ type (
 		dgPath                 string
 		shareNodes             bool
 		ipamCli                *ipammachinery.IPAMClient
+		ipamGrpcCli            *grpc.ClientConn
 		ipamCR                 string
 		defaultRouteDomain     int
 		TeemData               *teem.TeemsData
@@ -132,11 +134,12 @@ type (
 		NodeLabelSelector  string
 		ShareNodes         bool
 		IPAM               bool
+		IPAMGRPCUrl        string
 		DefaultRouteDomain int
 		Mode               ControllerMode
 		RouteSpecConfigmap string
 		RouteLabel         string
-		GRPCMode           bool
+		MultiCluster       bool
 	}
 
 	// CRInformer defines the structure of Custom Resource Informer

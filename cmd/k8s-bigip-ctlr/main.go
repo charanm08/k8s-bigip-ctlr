@@ -160,6 +160,7 @@ var (
 	as3Validation             *bool
 	sslInsecure               *bool
 	ipam                      *bool
+	ipamGRPCServer            *string
 	enableTLS                 *string
 	tls13CipherGroupReference *string
 	ciphers                   *string
@@ -183,7 +184,7 @@ var (
 	routeHttpVs      *string
 	routeHttpsVs     *string
 	clientSSL        *string
-	grpcMode         *bool
+	multiCluster     *bool
 	serverSSL        *string
 
 	routeSpecConfigmap *string
@@ -245,7 +246,7 @@ func _init() {
 		"Optional, address to serve http based informations (/metrics and /health).")
 	disableTeems = globalFlags.Bool("disable-teems", false,
 		"Optional, flag to disable sending telemetry data to TEEM")
-	grpcMode = globalFlags.Bool("grpc-server", false,
+	multiCluster = globalFlags.Bool("multi-cluster", false,
 		"Optional, set true to receive the cis agent updates")
 
 	// Custom Resource
@@ -280,6 +281,8 @@ func _init() {
 		"Optional, when set to true, enable insecure SSL communication to BIGIP.")
 	ipam = bigIPFlags.Bool("ipam", false,
 		"Optional, when set to true, enable ipam feature for CRD.")
+	ipamGRPCServer = bigIPFlags.String("ipam-grpc-url", "",
+		"Required, URL for the grpc ipam server")
 	as3PostDelay = bigIPFlags.Int("as3-post-delay", 0,
 		"Optional, time (in seconds) that CIS waits to post the available AS3 declaration.")
 	logAS3Response = bigIPFlags.Bool("log-as3-response", false,
@@ -837,7 +840,6 @@ func initController(
 	}
 
 	agent := controller.NewAgent(agentParams)
-
 	ctlr := controller.NewController(
 		controller.Params{
 			Config:             config,
@@ -852,12 +854,13 @@ func initController(
 			NodePollInterval:   *nodePollInterval,
 			NodeLabelSelector:  *nodeLabelSelector,
 			IPAM:               *ipam,
+			IPAMGRPCUrl:        *ipamGRPCServer,
 			ShareNodes:         *shareNodes,
 			DefaultRouteDomain: *defaultRouteDomain,
 			Mode:               controller.ControllerMode(*controllerMode),
 			RouteSpecConfigmap: *routeSpecConfigmap,
 			RouteLabel:         *routeLabel,
-			GRPCMode:           *grpcMode,
+			MultiCluster:       *multiCluster,
 		},
 	)
 

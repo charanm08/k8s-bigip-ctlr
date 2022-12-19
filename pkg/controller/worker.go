@@ -967,7 +967,7 @@ func (ctlr *Controller) processVirtualServers(
 
 	var ip string
 	var status int
-	if ctlr.ipamCli != nil {
+	if ctlr.ipamCli != nil || ctlr.ipamGrpcCli != nil {
 		if isVSDeleted && len(virtuals) == 0 && virtual.Spec.VirtualServerAddress == "" {
 			if virtual.Spec.HostGroup != "" {
 				//hg is unique across namespaces
@@ -1262,7 +1262,7 @@ func (ctlr *Controller) getAssociatedVirtualServers(
 			}
 		}
 
-		if ctlr.ipamCli != nil {
+		if ctlr.ipamCli != nil || ctlr.ipamGrpcCli != nil {
 			if currentVS.Spec.HostGroup == "" && vrt.Spec.IPAMLabel != currentVS.Spec.IPAMLabel {
 				log.Errorf("Same host %v is configured with different IPAM labels: %v, %v. Unable to process %v", vrt.Spec.Host, vrt.Spec.IPAMLabel, currentVS.Spec.IPAMLabel, currentVS.Name)
 				return nil
@@ -1459,112 +1459,115 @@ func (ctlr *Controller) migrateIPAM() {
 
 // Request IPAM for virtual IP address
 func (ctlr *Controller) requestIP(ipamLabel string, host string, key string) (string, int) {
-	ipamCR := ctlr.getIPAMCR()
-	var ip string
-	var ipReleased bool
-	if ipamCR == nil {
-		return "", NotEnabled
-	}
-
-	if ipamLabel == "" {
-		return "", InvalidInput
-	}
-
-	if host != "" {
-		//For VS server
-		for _, ipst := range ipamCR.Status.IPStatus {
-			if ipst.IPAMLabel == ipamLabel && ipst.Host == host {
-				// IP will be returned later when availability of corresponding spec is confirmed
-				ip = ipst.IP
-			}
-		}
-
-		for _, hst := range ipamCR.Spec.HostSpecs {
-			if hst.Host == host {
-				if hst.IPAMLabel == ipamLabel {
-					if ip != "" {
-						// IP extracted from the corresponding status of the spec
-						return ip, Allocated
-					}
-
-					// HostSpec is already updated with IPAMLabel and Host but IP not got allocated yet
-					return "", Requested
-				} else {
-					// Different Label for same host, this indicates Label is updated
-					// Release the old IP, so that new IP can be requested
-					ctlr.releaseIP(hst.IPAMLabel, hst.Host, "")
-					ipReleased = true
-					break
-				}
-			}
-		}
-
-		if ip != "" && !ipReleased {
-			// Status is available for non-existing Spec
-			// Let the resource get cleaned up and re request later
-			return "", NotRequested
-		}
-
-		ipamCR.SetResourceVersion(ipamCR.ResourceVersion)
-		ipamCR.Spec.HostSpecs = append(ipamCR.Spec.HostSpecs, &ficV1.HostSpec{
-			Host:      host,
-			Key:       key,
-			IPAMLabel: ipamLabel,
-		})
-	} else if key != "" {
-		//For Transport Server
-		for _, ipst := range ipamCR.Status.IPStatus {
-			if ipst.IPAMLabel == ipamLabel && ipst.Key == key {
-				// IP will be returned later when availability of corresponding spec is confirmed
-				ip = ipst.IP
-			}
-		}
-
-		for _, hst := range ipamCR.Spec.HostSpecs {
-			if hst.Key == key {
-				if hst.IPAMLabel == ipamLabel {
-					if ip != "" {
-						// IP extracted from the corresponding status of the spec
-						return ip, Allocated
-					}
-
-					// HostSpec is already updated with IPAMLabel and Host but IP not got allocated yet
-					return "", Requested
-				} else {
-					// Different Label for same key, this indicates Label is updated
-					// Release the old IP, so that new IP can be requested
-					ctlr.releaseIP(hst.IPAMLabel, "", hst.Key)
-					ipReleased = true
-					break
-				}
-			}
-		}
-
-		if ip != "" && !ipReleased {
-			// Status is available for non-existing Spec
-			// Let the resource get cleaned up and re request later
-			return "", NotRequested
-		}
-
-		ipamCR.SetResourceVersion(ipamCR.ResourceVersion)
-		ipamCR.Spec.HostSpecs = append(ipamCR.Spec.HostSpecs, &ficV1.HostSpec{
-			Key:       key,
-			IPAMLabel: ipamLabel,
-		})
+	if ctlr.ipamGrpcCli != nil {
+		return ctlr.allocateGrpcIP(ipamLabel, key)
 	} else {
-		log.Debugf("[IPAM] Invalid host and key.")
-		return "", InvalidInput
+		ipamCR := ctlr.getIPAMCR()
+		var ip string
+		var ipReleased bool
+		if ipamCR == nil {
+			return "", NotEnabled
+		}
+
+		if ipamLabel == "" {
+			return "", InvalidInput
+		}
+
+		if host != "" {
+			//For VS server
+			for _, ipst := range ipamCR.Status.IPStatus {
+				if ipst.IPAMLabel == ipamLabel && ipst.Host == host {
+					// IP will be returned later when availability of corresponding spec is confirmed
+					ip = ipst.IP
+				}
+			}
+
+			for _, hst := range ipamCR.Spec.HostSpecs {
+				if hst.Host == host {
+					if hst.IPAMLabel == ipamLabel {
+						if ip != "" {
+							// IP extracted from the corresponding status of the spec
+							return ip, Allocated
+						}
+
+						// HostSpec is already updated with IPAMLabel and Host but IP not got allocated yet
+						return "", Requested
+					} else {
+						// Different Label for same host, this indicates Label is updated
+						// Release the old IP, so that new IP can be requested
+						ctlr.releaseIP(hst.IPAMLabel, hst.Host, "")
+						ipReleased = true
+						break
+					}
+				}
+			}
+
+			if ip != "" && !ipReleased {
+				// Status is available for non-existing Spec
+				// Let the resource get cleaned up and re request later
+				return "", NotRequested
+			}
+
+			ipamCR.SetResourceVersion(ipamCR.ResourceVersion)
+			ipamCR.Spec.HostSpecs = append(ipamCR.Spec.HostSpecs, &ficV1.HostSpec{
+				Host:      host,
+				Key:       key,
+				IPAMLabel: ipamLabel,
+			})
+		} else if key != "" {
+			//For Transport Server
+			for _, ipst := range ipamCR.Status.IPStatus {
+				if ipst.IPAMLabel == ipamLabel && ipst.Key == key {
+					// IP will be returned later when availability of corresponding spec is confirmed
+					ip = ipst.IP
+				}
+			}
+
+			for _, hst := range ipamCR.Spec.HostSpecs {
+				if hst.Key == key {
+					if hst.IPAMLabel == ipamLabel {
+						if ip != "" {
+							// IP extracted from the corresponding status of the spec
+							return ip, Allocated
+						}
+
+						// HostSpec is already updated with IPAMLabel and Host but IP not got allocated yet
+						return "", Requested
+					} else {
+						// Different Label for same key, this indicates Label is updated
+						// Release the old IP, so that new IP can be requested
+						ctlr.releaseIP(hst.IPAMLabel, "", hst.Key)
+						ipReleased = true
+						break
+					}
+				}
+			}
+
+			if ip != "" && !ipReleased {
+				// Status is available for non-existing Spec
+				// Let the resource get cleaned up and re request later
+				return "", NotRequested
+			}
+
+			ipamCR.SetResourceVersion(ipamCR.ResourceVersion)
+			ipamCR.Spec.HostSpecs = append(ipamCR.Spec.HostSpecs, &ficV1.HostSpec{
+				Key:       key,
+				IPAMLabel: ipamLabel,
+			})
+		} else {
+			log.Debugf("[IPAM] Invalid host and key.")
+			return "", InvalidInput
+		}
+
+		_, err := ctlr.ipamCli.Update(ipamCR)
+		if err != nil {
+			log.Errorf("[ipam] Error updating IPAM CR : %v", err)
+			return "", NotRequested
+		}
+
+		log.Debugf("[ipam] Updated IPAM CR.")
+		return "", Requested
 	}
-
-	_, err := ctlr.ipamCli.Update(ipamCR)
-	if err != nil {
-		log.Errorf("[ipam] Error updating IPAM CR : %v", err)
-		return "", NotRequested
-	}
-
-	log.Debugf("[ipam] Updated IPAM CR.")
-	return "", Requested
-
 }
 
 // Get List of VirtualServers associated with the IPAM resource
@@ -1601,67 +1604,71 @@ func (ctlr *Controller) RemoveIPAMCRHostSpec(ipamCR *ficV1.IPAM, key string, ind
 }
 
 func (ctlr *Controller) releaseIP(ipamLabel string, host string, key string) string {
-	ipamCR := ctlr.getIPAMCR()
-	var ip string
-	if ipamCR == nil || ipamLabel == "" {
+	if ctlr.ipamGrpcCli != nil {
+		return ctlr.releaseGrpcIP(ipamLabel, key)
+	} else {
+		ipamCR := ctlr.getIPAMCR()
+		var ip string
+		if ipamCR == nil || ipamLabel == "" {
+			return ip
+		}
+		index := -1
+		if host != "" {
+			//Find index for deleted host
+			for i, hostSpec := range ipamCR.Spec.HostSpecs {
+				if hostSpec.IPAMLabel == ipamLabel && hostSpec.Host == host {
+					index = i
+					break
+				}
+			}
+			//Find IP address for deleted host
+			for _, ipst := range ipamCR.Status.IPStatus {
+				if ipst.IPAMLabel == ipamLabel && ipst.Host == host {
+					ip = ipst.IP
+				}
+			}
+			if index != -1 {
+				_, err := ctlr.RemoveIPAMCRHostSpec(ipamCR, key, index)
+				if err != nil {
+					log.Errorf("[ipam] ipam hostspec update error: %v", err)
+					return ""
+				}
+				log.Debug("[ipam] Updated IPAM CR hostspec while releasing IP.")
+			}
+		} else if key != "" {
+			//Find index for deleted key
+			for i, hostSpec := range ipamCR.Spec.HostSpecs {
+				if hostSpec.IPAMLabel == ipamLabel && hostSpec.Key == key {
+					index = i
+					break
+				}
+			}
+			//Find IP address for deleted host
+			for _, ipst := range ipamCR.Status.IPStatus {
+				if ipst.IPAMLabel == ipamLabel && ipst.Key == key {
+					ip = ipst.IP
+					break
+				}
+			}
+			if index != -1 {
+				_, err := ctlr.RemoveIPAMCRHostSpec(ipamCR, key, index)
+				if err != nil {
+					log.Errorf("[ipam] ipam hostspec update error: %v", err)
+					return ""
+				}
+				log.Debug("[ipam] Updated IPAM CR hostspec while releasing IP.")
+			}
+
+		} else {
+			log.Debugf("[IPAM] Invalid host and key.")
+		}
+
+		if len(ctlr.resources.ipamContext) == 0 {
+			ctlr.ipamHostSpecEmpty = true
+		}
+
 		return ip
 	}
-	index := -1
-	if host != "" {
-		//Find index for deleted host
-		for i, hostSpec := range ipamCR.Spec.HostSpecs {
-			if hostSpec.IPAMLabel == ipamLabel && hostSpec.Host == host {
-				index = i
-				break
-			}
-		}
-		//Find IP address for deleted host
-		for _, ipst := range ipamCR.Status.IPStatus {
-			if ipst.IPAMLabel == ipamLabel && ipst.Host == host {
-				ip = ipst.IP
-			}
-		}
-		if index != -1 {
-			_, err := ctlr.RemoveIPAMCRHostSpec(ipamCR, key, index)
-			if err != nil {
-				log.Errorf("[ipam] ipam hostspec update error: %v", err)
-				return ""
-			}
-			log.Debug("[ipam] Updated IPAM CR hostspec while releasing IP.")
-		}
-	} else if key != "" {
-		//Find index for deleted key
-		for i, hostSpec := range ipamCR.Spec.HostSpecs {
-			if hostSpec.IPAMLabel == ipamLabel && hostSpec.Key == key {
-				index = i
-				break
-			}
-		}
-		//Find IP address for deleted host
-		for _, ipst := range ipamCR.Status.IPStatus {
-			if ipst.IPAMLabel == ipamLabel && ipst.Key == key {
-				ip = ipst.IP
-				break
-			}
-		}
-		if index != -1 {
-			_, err := ctlr.RemoveIPAMCRHostSpec(ipamCR, key, index)
-			if err != nil {
-				log.Errorf("[ipam] ipam hostspec update error: %v", err)
-				return ""
-			}
-			log.Debug("[ipam] Updated IPAM CR hostspec while releasing IP.")
-		}
-
-	} else {
-		log.Debugf("[IPAM] Invalid host and key.")
-	}
-
-	if len(ctlr.resources.ipamContext) == 0 {
-		ctlr.ipamHostSpecEmpty = true
-	}
-
-	return ip
 }
 
 // updatePoolMembersForNodePort updates the pool with pool members for a
@@ -1935,7 +1942,7 @@ func (ctlr *Controller) processTransportServers(
 	var key string
 	var status int
 	key = virtual.ObjectMeta.Namespace + "/" + virtual.ObjectMeta.Name + "_ts"
-	if ctlr.ipamCli != nil {
+	if ctlr.ipamCli != nil || ctlr.ipamGrpcCli != nil {
 		if virtual.Spec.HostGroup != "" {
 			key = virtual.Spec.HostGroup + "_hg"
 		}
@@ -2270,7 +2277,7 @@ func (ctlr *Controller) processLBServices(
 	svc *v1.Service,
 	isSVCDeleted bool,
 ) error {
-	if ctlr.ipamCli == nil {
+	if ctlr.ipamCli == nil && ctlr.ipamGrpcCli == nil {
 		log.Error("IPAM is not enabled, Unable to process Services of Type LoadBalancer")
 		return nil
 	}
@@ -2850,7 +2857,7 @@ func (ctlr *Controller) processIngressLink(
 	var key string
 	var status int
 	key = ingLink.ObjectMeta.Namespace + "/" + ingLink.ObjectMeta.Name + "_il"
-	if ctlr.ipamCli != nil {
+	if ctlr.ipamCli != nil || ctlr.ipamGrpcCli != nil {
 		if isILDeleted && ingLink.Spec.VirtualServerAddress == "" {
 			ip = ctlr.releaseIP(ingLink.Spec.IPAMLabel, "", key)
 		} else if ingLink.Spec.VirtualServerAddress != "" {

@@ -165,7 +165,6 @@ func (ctlr *Controller) watchingAllNamespaces() bool {
 		_, watchingAll := ctlr.crInformers[""]
 		return watchingAll
 	}
-	return false
 }
 
 func (ctlr *Controller) getNamespacedCRInformer(

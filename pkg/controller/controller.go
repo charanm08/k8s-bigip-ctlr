@@ -128,7 +128,7 @@ func NewController(params Params) *Controller {
 	}
 
 	log.Debug("Controller Created")
-	if params.GRPCMode == true {
+	if params.MultiCluster == true {
 		ctlr.GRPCAgent = &GRPCAgent{
 			Port: gRPCServerPort,
 			EndPointServices: &EndPointServices{
@@ -202,18 +202,23 @@ func NewController(params Params) *Controller {
 	}
 
 	if params.IPAM {
-		ipamParams := ipammachinery.Params{
-			Config:        params.Config,
-			EventHandlers: ctlr.getEventHandlerForIPAM(),
-			Namespaces:    []string{IPAMNamespace},
+		if params.IPAMGRPCUrl != "" {
+			ctlr.ipamGrpcCli = NewGRPCClient(params.IPAMGRPCUrl)
+			// code to create a grpc client
+		} else {
+			ipamParams := ipammachinery.Params{
+				Config:        params.Config,
+				EventHandlers: ctlr.getEventHandlerForIPAM(),
+				Namespaces:    []string{IPAMNamespace},
+			}
+
+			ipamClient := ipammachinery.NewIPAMClient(ipamParams)
+			ctlr.ipamCli = ipamClient
+
+			ctlr.registerIPAMCRD()
+			time.Sleep(3 * time.Second)
+			_ = ctlr.createIPAMResource()
 		}
-
-		ipamClient := ipammachinery.NewIPAMClient(ipamParams)
-		ctlr.ipamCli = ipamClient
-
-		ctlr.registerIPAMCRD()
-		time.Sleep(3 * time.Second)
-		_ = ctlr.createIPAMResource()
 	}
 
 	go ctlr.responseHandler(ctlr.Agent.respChan)

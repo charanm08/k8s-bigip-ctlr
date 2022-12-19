@@ -43,7 +43,7 @@ func (ctlr *Controller) checkValidVirtualServer(
 		return false
 	}
 	bindAddr := vsResource.Spec.VirtualServerAddress
-	if ctlr.ipamCli == nil {
+	if ctlr.ipamCli == nil && ctlr.ipamGrpcCli == nil {
 
 		// This ensures that pool-only mode only logs the message below the first
 		// time we see a config.
@@ -84,7 +84,7 @@ func (ctlr *Controller) checkValidTransportServer(
 
 	bindAddr := tsResource.Spec.VirtualServerAddress
 
-	if ctlr.ipamCli == nil {
+	if ctlr.ipamCli == nil && ctlr.ipamGrpcCli == nil {
 		// This ensures that pool-only mode only logs the message below the first
 		// time we see a config.
 		if bindAddr == "" {
@@ -131,7 +131,7 @@ func (ctlr *Controller) checkValidIngressLink(
 
 	bindAddr := il.Spec.VirtualServerAddress
 
-	if ctlr.ipamCli == nil {
+	if ctlr.ipamCli == nil && ctlr.ipamGrpcCli == nil {
 		if bindAddr == "" {
 			log.Infof("No IP was specified for ingresslink %s", ilName)
 			return false
