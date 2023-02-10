@@ -299,11 +299,14 @@ func (postMgr *PostManager) GetBigipAS3Version() (string, string, string, error)
 	}
 
 	log.Infof("Posting GET BIGIP AS3 Version request on %v", url)
-	//req.SetBasicAuth(postMgr.BIGIPUsername, postMgr.BIGIPPassword)
-	token := postMgr.getBigipAuthToken(postMgr.BIGIPUsername, postMgr.BIGIPPassword)
-	log.Infof("lavanya: token is %v", token)
-	// add authorization header to the req
-	req.Header.Add("Authorization", "Bearer "+token)
+
+	if postMgr.ControllerMode == string(BIGIPNextMode) {
+		token := postMgr.getBigipAuthToken(postMgr.BIGIPUsername, postMgr.BIGIPPassword)
+		// add authorization header to the req
+		req.Header.Add("Authorization", "Bearer "+token)
+	} else {
+		req.SetBasicAuth(postMgr.BIGIPUsername, postMgr.BIGIPPassword)
+	}
 
 	httpResp, responseMap := postMgr.httpReq(req)
 	if httpResp == nil || responseMap == nil {
