@@ -410,46 +410,41 @@ func (ctlr *Controller) newNamespacedCommonResourceInformer(
 			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 		),
 	}
-	switch ctlr.mode {
-	case BIGIPNextMode:
-		return comInf
-	default:
-		comInf.svcInformer = cache.NewSharedIndexInformer(
+	comInf.svcInformer = cache.NewSharedIndexInformer(
+		cache.NewFilteredListWatchFromClient(
+			restClientv1,
+			"services",
+			namespace,
+			everything,
+		),
+		&corev1.Service{},
+		resyncPeriod,
+		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+	)
+	comInf.epsInformer = cache.NewSharedIndexInformer(
+		cache.NewFilteredListWatchFromClient(
+			restClientv1,
+			"endpoints",
+			namespace,
+			everything,
+		),
+		&corev1.Endpoints{},
+		resyncPeriod,
+		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+	)
+	//enable pod informer for nodeport local mode
+	if ctlr.PoolMemberType == NodePortLocal {
+		comInf.podInformer = cache.NewSharedIndexInformer(
 			cache.NewFilteredListWatchFromClient(
 				restClientv1,
-				"services",
+				"pods",
 				namespace,
 				everything,
 			),
-			&corev1.Service{},
+			&corev1.Pod{},
 			resyncPeriod,
 			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 		)
-		comInf.epsInformer = cache.NewSharedIndexInformer(
-			cache.NewFilteredListWatchFromClient(
-				restClientv1,
-				"endpoints",
-				namespace,
-				everything,
-			),
-			&corev1.Endpoints{},
-			resyncPeriod,
-			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
-		)
-		//enable pod informer for nodeport local mode
-		if ctlr.PoolMemberType == NodePortLocal {
-			comInf.podInformer = cache.NewSharedIndexInformer(
-				cache.NewFilteredListWatchFromClient(
-					restClientv1,
-					"pods",
-					namespace,
-					everything,
-				),
-				&corev1.Pod{},
-				resyncPeriod,
-				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
-			)
-		}
 	}
 	return comInf
 }

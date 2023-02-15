@@ -564,6 +564,7 @@ func verifyArgs() error {
 	switch *controllerMode {
 	case "",
 		string(controller.CustomResourceMode),
+		string(controller.BIGIPNextMode),
 		string(controller.KubernetesMode):
 		break
 	case string(controller.OpenShiftMode):
